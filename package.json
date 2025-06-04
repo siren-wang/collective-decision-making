@@ -1,5 +1,5 @@
 {
-  "name": "single-peaked",
+  "name": "collective-decision-making",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -35,5 +35,5 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "homepage": "https://siren-wang.github.io/single-peaked"
+  "homepage": "https://siren-wang.github.io/collective-decision-making"
 }
