@@ -1,88 +1,14 @@
 /* eslint-disable no-unused-vars */
 import { useState } from 'react';
+import { recognizeSinglePeaked, SinglePeakedResult, verifySinglePeaked } from './utils/recognizeSinglePeaked';
 import './App.css';
+import React from 'react';
 
 function App() {
   const [voters, setVoters] = useState([{ id: 1, preferences: ['A', 'B', 'C'] }]);
   const [candidates, setCandidates] = useState(['A', 'B', 'C']);
-  const [output, setOutput] = useState(null);
+  const [output, setOutput] = useState<SinglePeakedResult | null>(null);
   const [showDocs, setShowDocs] = useState(false);
-
-  function getBottomRanked(profile, A_prime) {
-    const bottom_set = new Set();
-    for (const voter of profile) {
-      for (let i = voter.length - 1; i >= 0; i--) {
-        const candidate = voter[i];
-        if (A_prime.has(candidate)) {
-          bottom_set.add(candidate);
-          break;
-        }
-      }
-    }
-    return Array.from(bottom_set);
-  }
-
-  function restricted(voter, A_prime) {
-    return voter.filter((c) => A_prime.has(c));
-  }
-
-  function recognizeSinglePeaked(profile) {
-    if (profile.length === 0) return "No";
-    const A = profile[0];
-    let A_prime = new Set(A);
-    const left = [];
-    const right = [];
-
-    // First stage
-    while (A_prime.size > 0 && right.length === 0) {
-      const B = getBottomRanked(profile, A_prime);
-      if (B.length > 2) return "No";
-      if (B.length === 1) left.push(B[0]);
-      else {
-        left.push(B[0]);
-        right.unshift(B[1]);
-      }
-      B.forEach((x) => A_prime.delete(x));
-    }
-
-    // Second stage
-    while (A_prime.size >= 2) {
-      const l = left[left.length - 1];
-      const r = right[0];
-      const B = getBottomRanked(profile, A_prime);
-      if (B.length > 2) return "No";
-
-      const L = new Set();
-      const R = new Set();
-
-      for (const x of B) {
-        for (const voter of profile) {
-          const Pi = restricted(voter, A_prime);
-          if (Pi.includes(l) && Pi.includes(r) && Pi.includes(x)) {
-            const lx = Pi.indexOf(x), ll = Pi.indexOf(l), lr = Pi.indexOf(r);
-            if (lr < lx && lx < ll) L.add(x);
-            else if (ll < lx && lx < lr) R.add(x);
-          }
-        }
-      }
-
-      if (L.size > 1 || R.size > 1) return "No";
-      if ([...L].some((x) => R.has(x))) return "No";
-
-      const undecided = B.filter((x) => !L.has(x) && !R.has(x));
-      for (const x of undecided) {
-        if (L.size === 0) L.add(x);
-        else if (R.size === 0) R.add(x);
-        else return "No";
-      }
-
-      left.push(...L);
-      right.unshift(...R);
-      B.forEach((x) => A_prime.delete(x));
-    }
-
-    return [...left, ...A_prime, ...right];
-  }
 
   const addCandidate = () => {
     const newCandidate = String.fromCharCode(65 + candidates.length);
@@ -125,13 +51,10 @@ function App() {
   };
 
   const handleCheck = () => {
-    try {
-      const profile = voters.map(voter => voter.preferences);
-      const result = recognizeSinglePeaked(profile);
-      setOutput(result);
-    } catch (e) {
-      setOutput("Invalid input");
-    }
+    const profile = voters.map(voter => voter.preferences);
+    const result = recognizeSinglePeaked(profile);
+    setOutput(result);
+    console.log('reuslt', result)
   };
 
   const AxisVisualization = ({ axis }) => {
@@ -160,6 +83,17 @@ function App() {
       </div>
     );
   };
+
+  const profile = [
+    ["d", "a", "f", "e", "b", "c"],
+    ["f", "d", "a", "c", "e", "b"],
+    ["e", "f", "b", "d", "a", "c"],
+    ["a", "d", "f", "e", "c", "b"]
+  ];
+  
+  const result = recognizeSinglePeaked(profile);
+  console.log("Result:", result);
+  
 
   const Documentation = () => (
     <div className="docs-panel">
@@ -306,12 +240,12 @@ function App() {
           {output && (
             <div className="result-panel">
               <h3 className="result-title">Result:</h3>
-              {output === "No" || output === "Invalid input" ? (
+              {!output.isSinglePeaked ? (
                 <p className="result-failure">The preference profile is NOT single-peaked.</p>
               ) : (
                 <div>
                   <p className="result-success">The preference profile IS single-peaked!</p>
-                  <AxisVisualization axis={output} />
+                  {output.ordering && <AxisVisualization axis={output.ordering} />}
                 </div>
               )}
             </div>
